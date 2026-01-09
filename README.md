@@ -30,6 +30,8 @@ pip install requests
 
 ## 快速开始
 
+**想要快速使用直接去看 test_httpRequest_class.py 代码就行了**
+
 ### 基本使用
 
 ```python
