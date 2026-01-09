@@ -44,18 +44,16 @@ mp.set_header("User-Agent", "MiniPostman/1.0")
 # 发送GET请求
 response = mp.send_request("GET", "https://jsonplaceholder.typicode.com/todos/1")
 
-# 查看响应
-print(f"状态码: {response.status_code}")
-print(f"响应文本: {mp.get_response_text()}")
-print(f"响应JSON: {mp.get_response_json()}")
+# 发送请求后会自动打印响应信息
+# 无需手动打印，代码会自动显示状态码、请求URL等信息
 
-# 提取字段
-mp.extract_field("userId", "user_id")
-user_id = mp.get_extracted_field("user_id")
+# 提取字段，直接返回提取的值
+user_id = mp.extract_field("userId", "user_id")
 print(f"提取的userId: {user_id}")
 
-# 支持数组索引提取
-mp.extract_field("[0].id", "first_id", session="default")
+# 支持数组索引提取，直接返回值
+first_id = mp.extract_field("[0].id", "first_id", session="default")
+print(f"第一个元素的id: {first_id}")
 
 # 发送带标题、SSL验证和代理的请求
 response = mp.send_request(
@@ -93,7 +91,108 @@ mp.update_from_extracted("json", "userId", "user_id")
 response = mp.send_request("POST", "https://jsonplaceholder.typicode.com/todos")
 ```
 
+### HttpRequest 类使用示例
+
+```python
+from httpRequest import HttpRequest
+
+# 创建HttpRequest实例
+hr = HttpRequest()
+
+# 批量设置请求头
+headers_string = """Host: jsonplaceholder.typicode.com
+User-Agent: MiniPostman/1.0
+Content-Type: application/json"""
+hr.set_headers_from_string(headers_string)
+
+# 发送GET请求
+response = hr.GET("https://jsonplaceholder.typicode.com/todos/1", title="获取任务详情")
+
+# 提取字段
+user_id = hr.extract("userId", "user_id")
+print(f"提取的userId: {user_id}")
+
+# 发送POST请求，带JSON数据
+response = hr.POST(
+    "https://jsonplaceholder.typicode.com/todos",
+    title="创建新任务",
+    json={"title": "Test Task", "completed": False, "userId": user_id}
+)
+
+# 发送PUT请求
+response = hr.PUT(
+    "https://jsonplaceholder.typicode.com/todos/1",
+    title="更新任务",
+    json={"title": "Updated Task", "completed": True}
+)
+```
+
 ## API参考
+
+### HttpRequest 类
+
+`HttpRequest` 是对 `MiniPostman` 的封装，提供了更简洁的API来发送HTTP请求。
+
+#### 初始化
+```python
+from httpRequest import HttpRequest
+
+# 创建HttpRequest实例
+hr = HttpRequest()
+```
+
+#### 主要方法
+
+##### `GET(url, title="GET请求", **kwargs)`
+发送GET请求
+- `url`: 请求URL
+- `title`: 接口标题，用于生成文件名
+- `**kwargs`: 可选参数
+  - `session`: 会话名称
+  - `headers`: 请求头字典
+  - `params`: 查询参数字典
+  - `save_to_file`: 是否保存响应到文件（默认True）
+  - `verify`: 是否验证SSL证书（默认False）
+  - `proxies`: 代理设置字典
+- 返回: 响应对象
+
+##### `POST(url, title="POST请求", **kwargs)`
+发送POST请求
+- `url`: 请求URL
+- `title`: 接口标题，用于生成文件名
+- `**kwargs`: 可选参数
+  - `session`: 会话名称
+  - `headers`: 请求头字典
+  - `data`: 表单数据字典
+  - `json`: JSON数据字典
+  - `save_to_file`: 是否保存响应到文件（默认True）
+  - `verify`: 是否验证SSL证书（默认False）
+- 返回: 响应对象
+
+##### `PUT(url, title="PUT请求", **kwargs)`
+发送PUT请求
+- `url`: 请求URL
+- `title`: 接口标题，用于生成文件名
+- `**kwargs`: 可选参数
+  - `session`: 会话名称
+  - `headers`: 请求头字典
+  - `data`: 表单数据字典
+  - `json`: JSON数据字典
+  - `save_to_file`: 是否保存响应到文件（默认True）
+  - `verify`: 是否验证SSL证书（默认False）
+- 返回: 响应对象
+
+##### `extract(field_path, alias, session=None)`
+提取响应字段
+- `field_path`: 字段路径，如 "data[0].id"
+- `alias`: 字段别名
+- `session`: 会话名称
+- 返回: 提取的字段值
+
+##### `set_headers_from_string(headers_string, session=None)`
+从字符串批量设置请求头
+- `headers_string`: 请求头字符串，格式为每行一个 "Key: Value"
+- `session`: 会话名称
 
 ### 核心方法
 
@@ -149,13 +248,14 @@ response = mp.send_request("POST", "https://jsonplaceholder.typicode.com/todos")
 - 返回: 响应JSON字典
 
 #### `extract_field(field_path, alias, session=None)`
-从响应中提取字段，支持嵌套路径和数组索引
+从响应中提取字段，支持嵌套路径和数组索引，并直接返回提取的值
 - `field_path`: 字段路径，支持嵌套路径和数组索引，如 "data.user.id" 或 "data[0].inst.code"
-- `alias`: 提取字段的别名
+- `alias`: 提取字段的别名，用于后续引用
 - `session`: 会话名称，默认为当前会话
+- 返回: 提取的字段值
 
 #### `get_extracted_field(alias, session=None)`
-获取提取的字段值
+获取之前提取的字段值（可选，因为extract_field会直接返回值）
 - `alias`: 提取字段的别名
 - `session`: 会话名称，默认为当前会话
 - 返回: 提取的字段值
