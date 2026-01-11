@@ -163,9 +163,68 @@ class HttpRequest:
     
     def set_json(self, data: Dict[str, Any], session: Optional[str] = None) -> None:
         """设置JSON数据
-        
+
         Args:
             data: JSON数据字典
             session: 会话名称
         """
         self.mp.set_json(data, session=session)
+    
+    def from_curl(self, curl_command: str, title: str = "CURL请求", session: Optional[str] = None, **kwargs) -> Any:
+        """从curl命令发送请求
+
+        Args:
+            curl_command: curl命令字符串
+            title: 接口标题，用于生成文件名
+            session: 会话名称
+            **kwargs: 其他参数（verify, proxies等）
+
+        Returns:
+            响应对象
+        """
+        import re
+        
+        # 清理curl命令，去除转义字符和换行
+        curl_command = curl_command.replace('\\', '').replace('\n', '').strip()
+        
+        # 提取请求方法
+        method_match = re.search(r'-X\s+(\w+)', curl_command, re.IGNORECASE)
+        method = method_match.group(1).upper() if method_match else 'GET'
+        
+        # 提取URL
+        url_match = re.search(r'"([^"]+)"', curl_command)
+        if not url_match:
+            raise ValueError("无法从curl命令中提取URL")
+        url = url_match.group(1)
+        
+        # 提取请求头
+        headers = {}
+        header_matches = re.findall(r'-H\s+"([^"]+)"', curl_command)
+        for header in header_matches:
+            if ':' in header:
+                key, value = header.split(':', 1)
+                headers[key.strip()] = value.strip()
+        
+        # 提取请求体
+        data_match = re.search(r'-d\s+\'([^\']+)\'', curl_command)
+        json_data = {}
+        if data_match:
+            data_str = data_match.group(1)
+            try:
+                json_data = eval(data_str)
+            except:
+                pass
+        
+        # 清理会话数据
+        self.mp.clear_session(session=session)
+        
+        # 设置请求头
+        for key, value in headers.items():
+            self.mp.set_header(key, value, session=session)
+        
+        # 设置JSON数据
+        if json_data:
+            self.mp.set_json(json_data, session=session)
+        
+        # 发送请求
+        return self.mp.send_request(method, url, session=session, title=title, **kwargs)
